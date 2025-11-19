@@ -1,0 +1,22 @@
+# data
+
+# logs
+*.log
+*.txt
+# data dumps and binaries
+*.csv
+*.zip
+*.tar
+*.h5
+# notebooks checkpoints
+.ipynb_checkpoints/
+# Python env / IDE / OS
+venv/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+.DS_Store
+# models if large (optional)
+
+resources/
