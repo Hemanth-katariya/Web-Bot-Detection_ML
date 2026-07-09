@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Bot Detection Shield</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --card-bg: rgba(18, 25, 40, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-purple: #9f55ff;
+      --status-allow: #10b981;
+      --status-challenge: #f59e0b;
+      --status-block: #ef4444;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 10% 20%, #0f172a 0%, #0a0e17 100%);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Glow backdrop effects */
+    .glow-sphere-1 {
+      position: fixed;
+      top: -150px;
+      left: -150px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, rgba(0,0,0,0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow-sphere-2 {
+      position: fixed;
+      bottom: -200px;
+      right: -100px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(159, 85, 255, 0.1) 0%, rgba(0,0,0,0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      z-index: 10;
+      padding: 1.5rem 2.5rem;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(10, 14, 23, 0.8);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #000;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
+    }
+
+    .logo-text h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-text p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--status-allow);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--status-allow);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--status-allow);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    main {
+      z-index: 10;
+      flex: 1;
+      max-width: 1350px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.75rem;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      padding: 1.75rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .presets-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .btn {
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
+      padding: 0.8rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .btn-bot {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .btn-bot:hover {
+      background: rgba(239, 68, 68, 0.25);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.25);
+    }
+
+    .btn-human {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+
+    .btn-human:hover {
+      background: rgba(16, 185, 129, 0.25);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+    }
+
+    .log-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .log-section label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    textarea {
+      width: 100%;
+      height: 90px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 0.75rem;
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      resize: none;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+    }
+
+    .canvas-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .canvas-box {
+      width: 100%;
+      height: 180px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      pointer-events: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #mouseCanvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .evaluate-btn {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #000;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(0, 242, 254, 0.3);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .evaluate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(0, 242, 254, 0.5);
+    }
+
+    /* Right Panel - Results */
+    .decision-card {
+      padding: 1.5rem;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      text-align: center;
+    }
+
+    .badge-action {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 0.4rem 1.5rem;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .badge-ALLOW {
+      color: var(--status-allow);
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    }
+
+    .badge-CHALLENGE {
+      color: var(--status-challenge);
+      text-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+    }
+
+    .badge-BLOCK {
+      color: var(--status-block);
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    }
+
+    .metrics-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .score-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .score-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 20px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .fill-web { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+    .fill-mouse { background: linear-gradient(90deg, #9f55ff, #ff6a88); }
+    .fill-hybrid { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .feature-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .feature-box .val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+    }
+
+    .feature-box .lbl {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-sphere-1"></div>
+  <div class="glow-sphere-2"></div>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-badge">BD</div>
+      <div class="logo-text">
+        <h1>Bot Detection Shield</h1>
+        <p>Production Web Bot Detection Engine</p>
+      </div>
+    </div>
+    <div class="system-status">
+      <div class="status-dot"></div>
+      <span>ENGINE ONLINE // PORT 8000</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Panel: Simulation & Live Inputs -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">⚡ Session Traffic & Movement Simulator</div>
+      </div>
+
+      <div class="presets-row">
+        <button class="btn btn-bot" onclick="loadPreset('bot')">
+          🤖 Load Advanced Scraping Bot
+        </button>
+        <button class="btn btn-human" onclick="loadPreset('human')">
+          👤 Load Natural Human Browser
+        </button>
+      </div>
+
+      <div class="log-section">
+        <label>Live Apache Log Event Feed:</label>
+        <textarea id="logFeed" placeholder="Paste Apache log lines here..."></textarea>
+      </div>
+
+      <div class="canvas-container">
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Interactive Mouse Trajectory Sampler (Move mouse inside canvas):</label>
+        <div class="canvas-box" id="canvasBox">
+          <div class="canvas-overlay">CAPTURED POINTS: <span id="pointCount">0</span></div>
+          <canvas id="mouseCanvas"></canvas>
+        </div>
+      </div>
+
+      <button class="evaluate-btn" onclick="evaluateTraffic()">
+        🚀 EVALUATE HYBRID SHIELD CONFIDENCE
+      </button>
+    </div>
+
+    <!-- Right Panel: Inference & Decision -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🛡️ Live Inference & Shield Action</div>
+      </div>
+
+      <div class="decision-card">
+        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">ENFORCEMENT DECISION</span>
+        <div id="badgeAction" class="badge-action badge-ALLOW">ALLOW TRAFFIC</div>
+        <p id="decisionReason" style="font-size: 0.85rem; color: var(--text-muted);">Session exhibits natural browsing cadence and organic kinematic variance.</p>
+      </div>
+
+      <div class="metrics-row">
+        <div class="score-item">
+          <div class="score-label">
+            <span>Web Log Classifier Score (P_web)</span>
+            <span id="scoreWebText">12.0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="barWeb" class="progress-bar-fill fill-web" style="width: 12%;"></div>
+          </div>
+        </div>
+
+        <div class="score-item">
+          <div class="score-label">
+            <span>Mouse Trajectory Kinematic Score (P_mouse)</span>
+            <span id="scoreMouseText">8.5%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="barMouse" class="progress-bar-fill fill-mouse" style="width: 8.5%;"></div>
+          </div>
+        </div>
+
+        <div class="score-item">
+          <div class="score-label">
+            <span>Combined Hybrid Shield Score (P_hybrid)</span>
+            <span id="scoreHybridText">10.2%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="barHybrid" class="progress-bar-fill fill-hybrid" style="width: 10.2%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-box">
+          <span id="featReq" class="val">14</span>
+          <span class="lbl">Total HTTP Requests</span>
+        </div>
+        <div class="feature-box">
+          <span id="featSpeed" class="val">0.34 req/s</span>
+          <span class="lbl">Browsing Speed</span>
+        </div>
+        <div class="feature-box">
+          <span id="featImg" class="val">28.5%</span>
+          <span class="lbl">Image Request Ratio</span>
+        </div>
+        <div class="feature-box">
+          <span id="featSeq" class="val">2</span>
+          <span class="lbl">Max Sequential Path</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let mousePoints = [];
+    const canvas = document.getElementById('mouseCanvas');
+    const ctx = canvas.getContext('2d');
+    const pointCountEl = document.getElementById('pointCount');
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      mousePoints.push([x, y, Date.now()]);
+      pointCountEl.textContent = mousePoints.length;
+
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = 2;
+      if (mousePoints.length > 1) {
+        const prev = mousePoints[mousePoints.length - 2];
+        ctx.beginPath();
+        ctx.moveTo(prev[0], prev[1]);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+    });
+
+    function loadPreset(type) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      mousePoints = [];
+      pointCountEl.textContent = "0";
+
+      if (type === 'bot') {
+        document.getElementById('logFeed').value = 
+`- - [10/Jul/2026:00:12:01 +0000] "GET / HTTP/1.1" 200 1204 "-" sess_bot_99 "Python-urllib/3.11"
+- - [10/Jul/2026:00:12:01 +0000] "POST /api/v1/scrape HTTP/1.1" 200 4500 "-" sess_bot_99 "Python-urllib/3.11"
+- - [10/Jul/2026:00:12:01 +0000] "POST /api/v1/scrape HTTP/1.1" 200 4500 "-" sess_bot_99 "Python-urllib/3.11"
+- - [10/Jul/2026:00:12:02 +0000] "POST /api/v1/scrape HTTP/1.1" 200 4500 "-" sess_bot_99 "Python-urllib/3.11"
+- - [10/Jul/2026:00:12:02 +0000] "POST /api/v1/scrape HTTP/1.1" 200 4500 "-" sess_bot_99 "Python-urllib/3.11"`;
+      } else {
+        document.getElementById('logFeed').value = 
+`- - [10/Jul/2026:00:14:10 +0000] "GET /index.html HTTP/1.1" 200 12450 "https://google.com" sess_human_01 "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+- - [10/Jul/2026:00:14:11 +0000] "GET /style/main.css HTTP/1.1" 200 3400 "https://mysite.com/index.html" sess_human_01 "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+- - [10/Jul/2026:00:14:11 +0000] "GET /images/hero.webp HTTP/1.1" 200 45200 "https://mysite.com/index.html" sess_human_01 "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+- - [10/Jul/2026:00:14:15 +0000] "GET /about.html HTTP/1.1" 200 8900 "https://mysite.com/index.html" sess_human_01 "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"`;
+      }
+    }
+
+    async function evaluateTraffic() {
+      const logText = document.getElementById('logFeed').value;
+      const response = await fetch('/api/v1/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          logs: logText.split('\n').filter(Boolean),
+          mouse_points: mousePoints
+        })
+      });
+
+      const data = await response.json();
+
+      // Update badge
+      const badge = document.getElementById('badgeAction');
+      badge.className = `badge-action badge-${data.action}`;
+      badge.textContent = data.action;
+
+      if (data.action === 'BLOCK') {
+        document.getElementById('decisionReason').textContent = "HIGH THREAT DETECTED: Automated scraping pattern & mechanical trajectory.";
+      } else if (data.action === 'CHALLENGE') {
+        document.getElementById('decisionReason').textContent = "SUSPICIOUS ACTIVITY: Request frequency or trajectory requires Turnstile verification.";
+      } else {
+        document.getElementById('decisionReason').textContent = "SESSION VERIFIED: Human browsing cadence and organic kinematic variance confirmed.";
+      }
+
+      // Update bars
+      document.getElementById('scoreWebText').textContent = `${(data.prob_web * 100).toFixed(1)}%`;
+      document.getElementById('barWeb').style.width = `${data.prob_web * 100}%`;
+
+      document.getElementById('scoreMouseText').textContent = `${(data.prob_mouse * 100).toFixed(1)}%`;
+      document.getElementById('barMouse').style.width = `${data.prob_mouse * 100}%`;
+
+      document.getElementById('scoreHybridText').textContent = `${(data.prob_hybrid * 100).toFixed(1)}%`;
+      document.getElementById('barHybrid').style.width = `${data.prob_hybrid * 100}%`;
+
+      // Update feature metrics
+      document.getElementById('featReq').textContent = data.features.Total_requests;
+      document.getElementById('featSpeed').textContent = `${data.features.Browsing_speed.toFixed(2)} req/s`;
+      document.getElementById('featImg').textContent = `${(data.features.image_ratio * 100).toFixed(1)}%`;
+      document.getElementById('featSeq').textContent = data.features.Max_sequential_request;
+    }
+
+    // Default load human
+    loadPreset('human');
+  </script>
+</body>
+</html>
